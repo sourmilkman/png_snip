@@ -13,6 +13,16 @@ npm run dev
 
 Open `http://localhost:5174`.
 
+## Install From GitHub Pages
+
+After GitHub Pages deploys, open:
+
+```text
+https://sourmilkman.github.io/png_snip/
+```
+
+Use your browser's install button or menu option, such as `Install app`.
+
 ## Build
 
 ```powershell

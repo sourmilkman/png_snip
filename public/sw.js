@@ -1,5 +1,10 @@
-const CACHE_NAME = "png-snip-v0.1.0";
-const APP_SHELL = ["/", "/manifest.webmanifest", "/icon.svg"];
+const CACHE_NAME = "png-snip-v0.1.1";
+
+function appUrl(path = "") {
+  return new URL(path, self.registration.scope).toString();
+}
+
+const APP_SHELL = [appUrl(), appUrl("manifest.webmanifest"), appUrl("icon.svg")];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)));
@@ -15,5 +20,5 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
-  event.respondWith(fetch(event.request).catch(() => caches.match(event.request).then((cached) => cached || caches.match("/"))));
+  event.respondWith(fetch(event.request).catch(() => caches.match(event.request).then((cached) => cached || caches.match(appUrl()))));
 });

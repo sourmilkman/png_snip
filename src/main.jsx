@@ -4,7 +4,7 @@ import { CheckCircle2, Download, FileImage, FolderOpen, Scissors, Sparkles, Uplo
 import { clampPadding, findOpaqueBounds, outputName, paddedBounds } from "./pngSnip.js";
 import "./styles.css";
 
-const APP_VERSION = "0.1.0";
+const APP_VERSION = "0.1.1";
 
 function App() {
   const [fileInfo, setFileInfo] = useState(null);
@@ -19,7 +19,7 @@ function App() {
 
   useEffect(() => {
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js").catch(() => {});
+      navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => {});
     }
   }, []);
 
