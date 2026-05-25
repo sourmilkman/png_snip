@@ -1,0 +1,17 @@
+{
+  "name": "PNG Snip",
+  "short_name": "PNG Snip",
+  "description": "Crop transparent PNG whitespace, center the graphic, and save _snip.png copies locally.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a1014",
+  "theme_color": "#0a1014",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
