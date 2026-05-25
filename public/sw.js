@@ -1,4 +1,4 @@
-const CACHE_NAME = "png-snip-v0.1.1";
+const CACHE_NAME = "png-snip-v0.1.2";
 
 function appUrl(path = "") {
   return new URL(path, self.registration.scope).toString();

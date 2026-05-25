@@ -4,14 +4,13 @@ import { CheckCircle2, Download, FileImage, FolderOpen, Scissors, Sparkles, Uplo
 import { clampPadding, findOpaqueBounds, outputName, paddedBounds } from "./pngSnip.js";
 import "./styles.css";
 
-const APP_VERSION = "0.1.1";
+const APP_VERSION = "0.1.2";
 
 function App() {
   const [fileInfo, setFileInfo] = useState(null);
   const [result, setResult] = useState(null);
   const [padding, setPadding] = useState(0);
   const [outputMode, setOutputMode] = useState("tight");
-  const [autoSave, setAutoSave] = useState(true);
   const [status, setStatus] = useState("Drop a transparent PNG to snip it.");
   const [isDragging, setIsDragging] = useState(false);
   const beforeRef = useRef(null);
@@ -87,11 +86,8 @@ function App() {
       drawPreview(afterRef.current, outputCanvas);
       setStatus(`Ready: ${nextResult.fileName}`);
 
-      if (autoSave) {
-        window.setTimeout(() => downloadBlob(nextResult.blob, nextResult.fileName), 80);
-      }
     },
-    [autoSave, outputMode, padding]
+    [outputMode, padding]
   );
 
   const stats = useMemo(() => {
@@ -136,7 +132,7 @@ function App() {
         >
           <Upload size={36} />
           <h2>Drop a PNG here</h2>
-          <p>PNG Snip trims transparent whitespace, centers the visible graphic, then autosaves a local copy ending in <strong>_snip.png</strong>.</p>
+          <p>PNG Snip trims transparent whitespace, centers the visible graphic, then prepares a local copy ending in <strong>_snip.png</strong>.</p>
           <label className="file-button">
             <FolderOpen size={18} />
             Choose PNG
@@ -154,10 +150,6 @@ function App() {
             <button className={outputMode === "tight" ? "active" : ""} onClick={() => setOutputMode("tight")}>Tight crop</button>
             <button className={outputMode === "original" ? "active" : ""} onClick={() => setOutputMode("original")}>Original size</button>
           </div>
-          <label className="toggle">
-            <input type="checkbox" checked={autoSave} onChange={(event) => setAutoSave(event.target.checked)} />
-            Auto-download after snip
-          </label>
           <button className="download-button" disabled={!result} onClick={() => result && downloadBlob(result.blob, result.fileName)}>
             <Download size={18} />
             Download _snip.png
