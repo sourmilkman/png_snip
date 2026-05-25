@@ -1,6 +1,6 @@
 # PNG Snip
 
-Tiny local PWA for transparent PNG cleanup.
+Tiny installable PWA for transparent PNG cleanup.
 
 PNG Snip trims excess transparent space around the visible graphic, centers the artwork, and prepares a downloadable copy using the original filename plus `_snip.png`.
 
@@ -22,6 +22,8 @@ https://sourmilkman.github.io/png_snip/
 ```
 
 Use your browser's install button or menu option, such as `Install app`.
+
+The root `index.html` is intentionally static so GitHub Pages works even when the repository is configured to publish from the branch root.
 
 ## Build
 

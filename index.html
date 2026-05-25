@@ -6,10 +6,73 @@
     <meta name="theme-color" content="#0a1014" />
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="src/styles.css" />
     <title>PNG Snip</title>
   </head>
   <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+    <main class="app-shell" data-version="0.1.3">
+      <header class="topbar">
+        <div class="brand">
+          <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m14.5 5.5-9 9M5.5 5.5l13 13M8 8a3 3 0 1 1-3-3 3 3 0 0 1 3 3Zm0 8a3 3 0 1 1-3-3 3 3 0 0 1 3 3Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          </svg>
+          <div>
+            <h1>PNG Snip</h1>
+            <span>v0.1.3 - local transparent PNG cropper</span>
+          </div>
+        </div>
+        <div class="status-pill" id="status">Ready. Drop a transparent PNG to snip it.</div>
+      </header>
+
+      <section class="workflow">
+        <section class="drop-zone" id="dropZone">
+          <svg width="36" height="36" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 3v12m0-12 5 5m-5-5-5 5M5 15v4h14v-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          <h2>Drop a PNG here</h2>
+          <p>PNG Snip trims transparent whitespace, centers the visible graphic, then prepares a local copy ending in <strong>_snip.png</strong>.</p>
+          <label class="file-button">
+            Choose PNG
+            <input id="fileInput" type="file" accept="image/png" />
+          </label>
+        </section>
+
+        <aside class="controls">
+          <div class="panel-title">Snip settings</div>
+          <label class="control">
+            Padding
+            <input id="paddingInput" type="number" min="0" max="2000" value="0" />
+          </label>
+          <div class="segmented" role="group" aria-label="Output mode">
+            <button id="tightMode" class="active" type="button">Tight crop</button>
+            <button id="originalMode" type="button">Original size</button>
+          </div>
+          <button id="downloadButton" class="download-button" disabled type="button">Download _snip.png</button>
+        </aside>
+      </section>
+
+      <section class="preview-grid">
+        <section class="preview-panel">
+          <div class="panel-title">Before</div>
+          <div class="checkerboard">
+            <canvas id="beforeCanvas" aria-label="Before canvas"></canvas>
+            <span>Original PNG preview</span>
+          </div>
+        </section>
+        <section class="preview-panel">
+          <div class="panel-title">After</div>
+          <div class="checkerboard">
+            <canvas id="afterCanvas" aria-label="After canvas"></canvas>
+            <span>Snipped and centered preview</span>
+          </div>
+        </section>
+      </section>
+
+      <section class="details">
+        <div class="panel-title">Output details</div>
+        <div id="detailsBody" class="empty-details">No PNG loaded yet.</div>
+      </section>
+    </main>
+    <script type="module" src="src/main.js"></script>
   </body>
 </html>
