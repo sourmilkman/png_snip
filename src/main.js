@@ -1,6 +1,6 @@
-import { clampPadding, findOpaqueBounds, outputName, paddedBounds } from "./pngSnip.js";
+import { centeredPaddedBounds, clampPadding, findOpaqueBounds, outputName } from "./pngSnip.js";
 
-const APP_VERSION = "0.1.3";
+const APP_VERSION = "0.1.4";
 
 const state = {
   outputMode: "tight",
@@ -95,7 +95,7 @@ async function processFile(file) {
     }
 
     const padding = clampPadding(elements.paddingInput.value);
-    const crop = paddedBounds(bounds, sourceCanvas.width, sourceCanvas.height, padding);
+    const crop = centeredPaddedBounds(bounds, sourceCanvas.width, sourceCanvas.height, padding);
     const outputCanvas = document.createElement("canvas");
     const outputCtx = outputCanvas.getContext("2d");
 

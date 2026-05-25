@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clampPadding, findOpaqueBounds, outputName, paddedBounds } from "../src/pngSnip.js";
+import { centeredPaddedBounds, clampPadding, findOpaqueBounds, outputName, paddedBounds } from "../src/pngSnip.js";
 
 describe("png snip helpers", () => {
   it("finds the visible alpha bounds", () => {
@@ -19,6 +19,16 @@ describe("png snip helpers", () => {
   it("pads bounds without exceeding source dimensions", () => {
     const bounds = paddedBounds({ x: 2, y: 3, width: 4, height: 5 }, 10, 10, 5);
     expect(bounds).toEqual({ x: 0, y: 0, width: 10, height: 10 });
+  });
+
+  it("preserves the original canvas center when making a centered crop", () => {
+    const bounds = centeredPaddedBounds({ x: 245, y: 180, width: 310, height: 240 }, 800, 600, 0);
+    expect(bounds).toEqual({ x: 245, y: 180, width: 310, height: 240 });
+  });
+
+  it("expands asymmetric bounds around the original center", () => {
+    const bounds = centeredPaddedBounds({ x: 280, y: 180, width: 360, height: 240 }, 800, 600, 0);
+    expect(bounds).toEqual({ x: 160, y: 180, width: 480, height: 240 });
   });
 
   it("builds the _snip filename", () => {

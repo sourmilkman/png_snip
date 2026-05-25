@@ -47,3 +47,22 @@ export function paddedBounds(bounds, sourceWidth, sourceHeight, padding) {
     height: bottom - y
   };
 }
+
+export function centeredPaddedBounds(bounds, sourceWidth, sourceHeight, padding) {
+  const centerX = sourceWidth / 2;
+  const centerY = sourceHeight / 2;
+  const right = bounds.x + bounds.width;
+  const bottom = bounds.y + bounds.height;
+  const halfWidth = Math.ceil(Math.max(centerX - bounds.x, right - centerX) + padding);
+  const halfHeight = Math.ceil(Math.max(centerY - bounds.y, bottom - centerY) + padding);
+  const width = Math.min(sourceWidth, halfWidth * 2);
+  const height = Math.min(sourceHeight, halfHeight * 2);
+  const x = clamp(Math.round(centerX - width / 2), 0, sourceWidth - width);
+  const y = clamp(Math.round(centerY - height / 2), 0, sourceHeight - height);
+
+  return { x, y, width, height };
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(value, max));
+}
