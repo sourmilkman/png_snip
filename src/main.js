@@ -1,6 +1,6 @@
 import { centeredPaddedBounds, clampPadding, findOpaqueBounds, normalizeCropBounds, outputName } from "./pngSnip.js";
 
-const APP_VERSION = "0.1.6";
+const APP_VERSION = "0.1.7";
 
 const state = {
   outputMode: "tight",
@@ -122,8 +122,8 @@ elements.cropOverlay.addEventListener("pointerdown", (event) => {
 
 elements.cropOverlay.addEventListener("pointermove", (event) => {
   if (!state.drag || !state.sourceSize || !state.sourcePreview) return;
-  const dx = Math.round((event.clientX - state.drag.startX) / state.sourcePreview.scale);
-  const dy = Math.round((event.clientY - state.drag.startY) / state.sourcePreview.scale);
+  const dx = Math.round((event.clientX - state.drag.startX) / state.sourcePreview.scaleX);
+  const dy = Math.round((event.clientY - state.drag.startY) / state.sourcePreview.scaleY);
   state.manualBounds = resizeCropByHandle(state.drag.startBounds, state.drag.handle, dx, dy, state.sourceSize);
   syncManualInputs(state.manualBounds);
   renderCropOverlay();
@@ -332,13 +332,7 @@ function drawPreview(targetCanvas, sourceCanvas) {
   ctx.drawImage(sourceCanvas, 0, 0, targetCanvas.width, targetCanvas.height);
   targetCanvas.parentElement?.classList.add("has-image");
   if (targetCanvas === elements.beforeCanvas) {
-    state.sourcePreview = {
-      scale,
-      left: targetCanvas.offsetLeft,
-      top: targetCanvas.offsetTop,
-      width: targetCanvas.width,
-      height: targetCanvas.height
-    };
+    state.sourcePreview = measureSourcePreview();
   }
 }
 
@@ -359,16 +353,38 @@ function renderCropOverlay() {
     return;
   }
 
-  const { scale, left, top, width, height } = state.sourcePreview;
+  state.sourcePreview = measureSourcePreview();
+  if (!state.sourcePreview) {
+    elements.cropOverlay.hidden = true;
+    return;
+  }
+
+  const { scaleX, scaleY, left, top, width, height } = state.sourcePreview;
   elements.cropOverlay.hidden = false;
   elements.cropOverlay.style.left = `${left}px`;
   elements.cropOverlay.style.top = `${top}px`;
   elements.cropOverlay.style.width = `${width}px`;
   elements.cropOverlay.style.height = `${height}px`;
-  elements.cropBox.style.left = `${state.manualBounds.x * scale}px`;
-  elements.cropBox.style.top = `${state.manualBounds.y * scale}px`;
-  elements.cropBox.style.width = `${state.manualBounds.width * scale}px`;
-  elements.cropBox.style.height = `${state.manualBounds.height * scale}px`;
+  elements.cropBox.style.left = `${state.manualBounds.x * scaleX}px`;
+  elements.cropBox.style.top = `${state.manualBounds.y * scaleY}px`;
+  elements.cropBox.style.width = `${state.manualBounds.width * scaleX}px`;
+  elements.cropBox.style.height = `${state.manualBounds.height * scaleY}px`;
+}
+
+function measureSourcePreview() {
+  if (!state.sourceSize || !elements.beforeCanvas?.parentElement) return null;
+  const canvasRect = elements.beforeCanvas.getBoundingClientRect();
+  const parentRect = elements.beforeCanvas.parentElement.getBoundingClientRect();
+  if (!canvasRect.width || !canvasRect.height) return null;
+
+  return {
+    left: canvasRect.left - parentRect.left,
+    top: canvasRect.top - parentRect.top,
+    width: canvasRect.width,
+    height: canvasRect.height,
+    scaleX: canvasRect.width / state.sourceSize.width,
+    scaleY: canvasRect.height / state.sourceSize.height
+  };
 }
 
 function resizeCropByHandle(start, handle, dx, dy, sourceSize) {
