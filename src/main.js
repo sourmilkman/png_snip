@@ -1,6 +1,6 @@
 import { centeredPaddedBounds, clampPadding, findOpaqueBounds, normalizeCropBounds, outputName } from "./pngSnip.js";
 
-const APP_VERSION = "0.1.5";
+const APP_VERSION = "0.1.6";
 
 const state = {
   outputMode: "tight",
@@ -11,7 +11,9 @@ const state = {
   manualBounds: null,
   sourceSize: null,
   processId: 0,
-  manualTimer: null
+  manualTimer: null,
+  sourcePreview: null,
+  drag: null
 };
 
 const elements = {
@@ -28,6 +30,8 @@ const elements = {
   cropWInput: document.querySelector("#cropWInput"),
   cropHInput: document.querySelector("#cropHInput"),
   resetManualButton: document.querySelector("#resetManualButton"),
+  cropOverlay: document.querySelector("#cropOverlay"),
+  cropBox: document.querySelector(".crop-box"),
   downloadButton: document.querySelector("#downloadButton"),
   beforeCanvas: document.querySelector("#beforeCanvas"),
   afterCanvas: document.querySelector("#afterCanvas"),
@@ -101,6 +105,36 @@ elements.resetManualButton.addEventListener("click", () => {
   state.manualBounds = normalizeCropBounds(state.autoCrop, state.sourceSize.width, state.sourceSize.height);
   syncManualInputs(state.manualBounds);
   if (state.lastFile) processFile(state.lastFile, { preserveManual: true });
+});
+
+elements.cropOverlay.addEventListener("pointerdown", (event) => {
+  const handle = event.target.dataset.handle;
+  if (!handle || !state.manualBounds || !state.sourcePreview) return;
+  event.preventDefault();
+  elements.cropOverlay.setPointerCapture(event.pointerId);
+  state.drag = {
+    handle,
+    startX: event.clientX,
+    startY: event.clientY,
+    startBounds: { ...state.manualBounds }
+  };
+});
+
+elements.cropOverlay.addEventListener("pointermove", (event) => {
+  if (!state.drag || !state.sourceSize || !state.sourcePreview) return;
+  const dx = Math.round((event.clientX - state.drag.startX) / state.sourcePreview.scale);
+  const dy = Math.round((event.clientY - state.drag.startY) / state.sourcePreview.scale);
+  state.manualBounds = resizeCropByHandle(state.drag.startBounds, state.drag.handle, dx, dy, state.sourceSize);
+  syncManualInputs(state.manualBounds);
+  renderCropOverlay();
+  scheduleManualProcess();
+});
+
+elements.cropOverlay.addEventListener("pointerup", (event) => {
+  if (state.drag) {
+    elements.cropOverlay.releasePointerCapture(event.pointerId);
+    state.drag = null;
+  }
 });
 
 elements.downloadButton.addEventListener("click", () => {
@@ -183,6 +217,7 @@ async function processFile(file, options = {}) {
 
     drawPreview(elements.beforeCanvas, sourceCanvas);
     drawPreview(elements.afterCanvas, outputCanvas);
+    renderCropOverlay();
     renderDetails(state.result);
     elements.downloadButton.disabled = false;
     updateStatus(`Ready: ${state.result.fileName}`);
@@ -204,6 +239,7 @@ function setMode(mode) {
   elements.manualMode.classList.toggle("active", mode === "manual");
   elements.originalMode.classList.toggle("active", mode === "original");
   elements.manualControls.hidden = mode !== "manual";
+  renderCropOverlay();
   if (state.lastFile) processFile(state.lastFile, { preserveManual: true });
 }
 
@@ -243,6 +279,7 @@ function syncManualInputs(bounds) {
   elements.cropYInput.value = bounds.y;
   elements.cropWInput.value = bounds.width;
   elements.cropHInput.value = bounds.height;
+  renderCropOverlay();
 }
 
 function updateStatus(message) {
@@ -294,6 +331,15 @@ function drawPreview(targetCanvas, sourceCanvas) {
   ctx.clearRect(0, 0, targetCanvas.width, targetCanvas.height);
   ctx.drawImage(sourceCanvas, 0, 0, targetCanvas.width, targetCanvas.height);
   targetCanvas.parentElement?.classList.add("has-image");
+  if (targetCanvas === elements.beforeCanvas) {
+    state.sourcePreview = {
+      scale,
+      left: targetCanvas.offsetLeft,
+      top: targetCanvas.offsetTop,
+      width: targetCanvas.width,
+      height: targetCanvas.height
+    };
+  }
 }
 
 function clearCanvas(targetCanvas) {
@@ -301,6 +347,64 @@ function clearCanvas(targetCanvas) {
   const ctx = targetCanvas.getContext("2d");
   ctx.clearRect(0, 0, targetCanvas.width, targetCanvas.height);
   targetCanvas.parentElement?.classList.remove("has-image");
+  if (targetCanvas === elements.beforeCanvas) {
+    state.sourcePreview = null;
+    renderCropOverlay();
+  }
+}
+
+function renderCropOverlay() {
+  if (!elements.cropOverlay || state.outputMode !== "manual" || !state.manualBounds || !state.sourcePreview) {
+    elements.cropOverlay.hidden = true;
+    return;
+  }
+
+  const { scale, left, top, width, height } = state.sourcePreview;
+  elements.cropOverlay.hidden = false;
+  elements.cropOverlay.style.left = `${left}px`;
+  elements.cropOverlay.style.top = `${top}px`;
+  elements.cropOverlay.style.width = `${width}px`;
+  elements.cropOverlay.style.height = `${height}px`;
+  elements.cropBox.style.left = `${state.manualBounds.x * scale}px`;
+  elements.cropBox.style.top = `${state.manualBounds.y * scale}px`;
+  elements.cropBox.style.width = `${state.manualBounds.width * scale}px`;
+  elements.cropBox.style.height = `${state.manualBounds.height * scale}px`;
+}
+
+function resizeCropByHandle(start, handle, dx, dy, sourceSize) {
+  let { x, y, width, height } = start;
+  const minSize = 8;
+
+  if (handle === "move") {
+    x += dx;
+    y += dy;
+  } else {
+    if (handle.includes("w")) {
+      x += dx;
+      width -= dx;
+    }
+    if (handle.includes("e")) {
+      width += dx;
+    }
+    if (handle.includes("n")) {
+      y += dy;
+      height -= dy;
+    }
+    if (handle.includes("s")) {
+      height += dy;
+    }
+  }
+
+  if (width < minSize) {
+    if (handle.includes("w")) x -= minSize - width;
+    width = minSize;
+  }
+  if (height < minSize) {
+    if (handle.includes("n")) y -= minSize - height;
+    height = minSize;
+  }
+
+  return normalizeCropBounds({ x, y, width, height }, sourceSize.width, sourceSize.height);
 }
 
 function escapeHtml(value) {

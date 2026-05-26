@@ -10,7 +10,7 @@
     <title>PNG Snip</title>
   </head>
   <body>
-    <main class="app-shell" data-version="0.1.5">
+    <main class="app-shell" data-version="0.1.6">
       <header class="topbar">
         <div class="brand">
           <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true">
@@ -18,7 +18,7 @@
           </svg>
           <div>
             <h1>PNG Snip</h1>
-            <span>v0.1.5 - local transparent PNG cropper</span>
+            <span>v0.1.6 - local transparent PNG cropper</span>
           </div>
         </div>
         <div class="status-pill" id="status">Ready. Drop a transparent PNG to snip it.</div>
@@ -49,6 +49,7 @@
             <button id="originalMode" type="button">Original size</button>
           </div>
           <div class="manual-controls" id="manualControls" hidden>
+            <p class="crop-hint">Drag the crop box, sides, or corners on the Before preview.</p>
             <div class="manual-grid">
               <label class="control">X<input id="cropXInput" type="number" min="0" value="0" /></label>
               <label class="control">Y<input id="cropYInput" type="number" min="0" value="0" /></label>
@@ -72,6 +73,18 @@
           <div class="panel-title">Before</div>
           <div class="checkerboard">
             <canvas id="beforeCanvas" aria-label="Before canvas"></canvas>
+            <div id="cropOverlay" class="crop-overlay" hidden>
+              <div class="crop-box" data-handle="move">
+                <span data-handle="nw"></span>
+                <span data-handle="n"></span>
+                <span data-handle="ne"></span>
+                <span data-handle="e"></span>
+                <span data-handle="se"></span>
+                <span data-handle="s"></span>
+                <span data-handle="sw"></span>
+                <span data-handle="w"></span>
+              </div>
+            </div>
             <span>Original PNG preview</span>
           </div>
         </section>
