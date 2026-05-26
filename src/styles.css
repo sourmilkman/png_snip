@@ -15,6 +15,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 body {
   margin: 0;
   min-width: 320px;
@@ -176,7 +177,7 @@ h1 {
 
 .segmented {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 8px;
 }
 
@@ -192,6 +193,50 @@ h1 {
 .segmented .active {
   background: rgba(92, 242, 200, 0.16);
   border-color: var(--teal);
+  color: var(--teal);
+}
+
+.manual-controls {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #0b1519;
+}
+
+.manual-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.manual-grid .control {
+  gap: 5px;
+}
+
+.manual-grid input {
+  padding: 0 8px;
+}
+
+.nudge-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.nudge-grid button, .ghost-button {
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #081114;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.ghost-button {
+  width: 100%;
   color: var(--teal);
 }
 
@@ -269,7 +314,7 @@ h1 {
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 10px;
 }
 
@@ -311,6 +356,10 @@ h1 {
 
   .stats-grid {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .manual-grid, .nudge-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 

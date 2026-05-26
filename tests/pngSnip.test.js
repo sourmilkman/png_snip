@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { centeredPaddedBounds, clampPadding, findOpaqueBounds, outputName, paddedBounds } from "../src/pngSnip.js";
+import { centeredPaddedBounds, clampPadding, findOpaqueBounds, normalizeCropBounds, outputName, paddedBounds } from "../src/pngSnip.js";
 
 describe("png snip helpers", () => {
   it("finds the visible alpha bounds", () => {
@@ -40,6 +40,15 @@ describe("png snip helpers", () => {
     expect(clampPadding("-10")).toBe(0);
     expect(clampPadding("42")).toBe(42);
     expect(clampPadding("5000")).toBe(2000);
+  });
+
+  it("normalizes manual crop bounds inside the source canvas", () => {
+    expect(normalizeCropBounds({ x: 90, y: -5, width: 40, height: 400 }, 100, 80)).toEqual({
+      x: 60,
+      y: 0,
+      width: 40,
+      height: 80
+    });
   });
 });
 

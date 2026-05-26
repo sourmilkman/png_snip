@@ -63,6 +63,14 @@ export function centeredPaddedBounds(bounds, sourceWidth, sourceHeight, padding)
   return { x, y, width, height };
 }
 
+export function normalizeCropBounds(bounds, sourceWidth, sourceHeight) {
+  const width = clamp(Math.round(Number(bounds.width) || 1), 1, sourceWidth);
+  const height = clamp(Math.round(Number(bounds.height) || 1), 1, sourceHeight);
+  const x = clamp(Math.round(Number(bounds.x) || 0), 0, sourceWidth - width);
+  const y = clamp(Math.round(Number(bounds.y) || 0), 0, sourceHeight - height);
+  return { x, y, width, height };
+}
+
 function clamp(value, min, max) {
   return Math.max(min, Math.min(value, max));
 }

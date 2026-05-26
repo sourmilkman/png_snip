@@ -1,11 +1,17 @@
-import { centeredPaddedBounds, clampPadding, findOpaqueBounds, outputName } from "./pngSnip.js";
+import { centeredPaddedBounds, clampPadding, findOpaqueBounds, normalizeCropBounds, outputName } from "./pngSnip.js";
 
-const APP_VERSION = "0.1.4";
+const APP_VERSION = "0.1.5";
 
 const state = {
   outputMode: "tight",
   result: null,
-  lastFile: null
+  lastFile: null,
+  lastFileKey: "",
+  autoCrop: null,
+  manualBounds: null,
+  sourceSize: null,
+  processId: 0,
+  manualTimer: null
 };
 
 const elements = {
@@ -14,7 +20,14 @@ const elements = {
   fileInput: document.querySelector("#fileInput"),
   paddingInput: document.querySelector("#paddingInput"),
   tightMode: document.querySelector("#tightMode"),
+  manualMode: document.querySelector("#manualMode"),
   originalMode: document.querySelector("#originalMode"),
+  manualControls: document.querySelector("#manualControls"),
+  cropXInput: document.querySelector("#cropXInput"),
+  cropYInput: document.querySelector("#cropYInput"),
+  cropWInput: document.querySelector("#cropWInput"),
+  cropHInput: document.querySelector("#cropHInput"),
+  resetManualButton: document.querySelector("#resetManualButton"),
   downloadButton: document.querySelector("#downloadButton"),
   beforeCanvas: document.querySelector("#beforeCanvas"),
   afterCanvas: document.querySelector("#afterCanvas"),
@@ -46,7 +59,7 @@ elements.fileInput.addEventListener("change", (event) => {
   processFile(event.target.files?.[0]);
 });
 
-elements.paddingInput.addEventListener("change", () => {
+elements.paddingInput.addEventListener("input", () => {
   elements.paddingInput.value = clampPadding(elements.paddingInput.value);
   if (state.lastFile) processFile(state.lastFile);
 });
@@ -55,16 +68,48 @@ elements.tightMode.addEventListener("click", () => {
   setMode("tight");
 });
 
+elements.manualMode.addEventListener("click", () => {
+  setMode("manual");
+});
+
 elements.originalMode.addEventListener("click", () => {
   setMode("original");
+});
+
+for (const input of [elements.cropXInput, elements.cropYInput, elements.cropWInput, elements.cropHInput]) {
+  input.addEventListener("input", () => {
+    updateManualBoundsFromInputs();
+    scheduleManualProcess();
+  });
+}
+
+elements.manualControls.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-nudge]");
+  if (!button || !state.manualBounds || !state.sourceSize) return;
+  const [dx, dy] = button.dataset.nudge.split(",").map(Number);
+  state.manualBounds = normalizeCropBounds(
+    { ...state.manualBounds, x: state.manualBounds.x + dx, y: state.manualBounds.y + dy },
+    state.sourceSize.width,
+    state.sourceSize.height
+  );
+  syncManualInputs(state.manualBounds);
+  if (state.lastFile) processFile(state.lastFile, { preserveManual: true });
+});
+
+elements.resetManualButton.addEventListener("click", () => {
+  if (!state.autoCrop || !state.sourceSize) return;
+  state.manualBounds = normalizeCropBounds(state.autoCrop, state.sourceSize.width, state.sourceSize.height);
+  syncManualInputs(state.manualBounds);
+  if (state.lastFile) processFile(state.lastFile, { preserveManual: true });
 });
 
 elements.downloadButton.addEventListener("click", () => {
   if (state.result) downloadBlob(state.result.blob, state.result.fileName);
 });
 
-async function processFile(file) {
+async function processFile(file, options = {}) {
   if (!file) return;
+  const runId = ++state.processId;
   if (file.type !== "image/png" && !file.name.toLowerCase().endsWith(".png")) {
     updateStatus("PNG Snip only accepts PNG files.");
     state.result = null;
@@ -72,11 +117,15 @@ async function processFile(file) {
     return;
   }
 
+  const fileKey = `${file.name}:${file.size}:${file.lastModified}`;
+  const isNewFile = fileKey !== state.lastFileKey;
   state.lastFile = file;
+  state.lastFileKey = fileKey;
   updateStatus("Reading PNG pixels...");
 
   try {
     const image = await loadImage(file);
+    if (runId !== state.processId) return;
     const sourceCanvas = document.createElement("canvas");
     const sourceCtx = sourceCanvas.getContext("2d", { willReadFrequently: true });
     sourceCanvas.width = image.naturalWidth;
@@ -95,7 +144,17 @@ async function processFile(file) {
     }
 
     const padding = clampPadding(elements.paddingInput.value);
-    const crop = centeredPaddedBounds(bounds, sourceCanvas.width, sourceCanvas.height, padding);
+    state.sourceSize = { width: sourceCanvas.width, height: sourceCanvas.height };
+    state.autoCrop = centeredPaddedBounds(bounds, sourceCanvas.width, sourceCanvas.height, padding);
+    if (isNewFile || !state.manualBounds || !options.preserveManual) {
+      state.manualBounds = normalizeCropBounds(state.autoCrop, sourceCanvas.width, sourceCanvas.height);
+    }
+    syncManualInputs(state.manualBounds);
+
+    const crop =
+      state.outputMode === "manual"
+        ? normalizeCropBounds(state.manualBounds, sourceCanvas.width, sourceCanvas.height)
+        : state.autoCrop;
     const outputCanvas = document.createElement("canvas");
     const outputCtx = outputCanvas.getContext("2d");
 
@@ -112,10 +171,12 @@ async function processFile(file) {
     }
 
     const blob = await canvasToBlob(outputCanvas);
+    if (runId !== state.processId) return;
     state.result = {
       blob,
       fileName: outputName(file.name),
       bounds,
+      crop,
       source: { width: sourceCanvas.width, height: sourceCanvas.height },
       output: { width: outputCanvas.width, height: outputCanvas.height }
     };
@@ -130,17 +191,28 @@ async function processFile(file) {
   }
 }
 
+function scheduleManualProcess() {
+  window.clearTimeout(state.manualTimer);
+  state.manualTimer = window.setTimeout(() => {
+    if (state.lastFile) processFile(state.lastFile, { preserveManual: true });
+  }, 120);
+}
+
 function setMode(mode) {
   state.outputMode = mode;
   elements.tightMode.classList.toggle("active", mode === "tight");
+  elements.manualMode.classList.toggle("active", mode === "manual");
   elements.originalMode.classList.toggle("active", mode === "original");
-  if (state.lastFile) processFile(state.lastFile);
+  elements.manualControls.hidden = mode !== "manual";
+  if (state.lastFile) processFile(state.lastFile, { preserveManual: true });
 }
 
 function renderDetails(result) {
   const rows = [
     ["Source", `${result.source.width} x ${result.source.height}`],
     ["Graphic bounds", `${result.bounds.width} x ${result.bounds.height}`],
+    ["Crop X/Y", `${result.crop.x}, ${result.crop.y}`],
+    ["Crop size", `${result.crop.width} x ${result.crop.height}`],
     ["Output", `${result.output.width} x ${result.output.height}`],
     ["File", result.fileName]
   ];
@@ -149,6 +221,28 @@ function renderDetails(result) {
   elements.detailsBody.innerHTML = rows
     .map(([label, value]) => `<div class="stat"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`)
     .join("");
+}
+
+function updateManualBoundsFromInputs() {
+  if (!state.sourceSize) return;
+  state.manualBounds = normalizeCropBounds(
+    {
+      x: elements.cropXInput.value,
+      y: elements.cropYInput.value,
+      width: elements.cropWInput.value,
+      height: elements.cropHInput.value
+    },
+    state.sourceSize.width,
+    state.sourceSize.height
+  );
+  syncManualInputs(state.manualBounds);
+}
+
+function syncManualInputs(bounds) {
+  elements.cropXInput.value = bounds.x;
+  elements.cropYInput.value = bounds.y;
+  elements.cropWInput.value = bounds.width;
+  elements.cropHInput.value = bounds.height;
 }
 
 function updateStatus(message) {
